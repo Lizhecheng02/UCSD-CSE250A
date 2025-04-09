@@ -9,6 +9,7 @@ To run, call "python hangman.py".
 import numpy as np
 import pandas as pd
 import os
+import string
 from tqdm import tqdm
 from tabulate import tabulate
 
@@ -24,7 +25,8 @@ def compute_prior(word_counts):
     Returns:
         pd.Series: Prior probabilities for all words in the corpus
     """
-    return
+    total_count = word_counts["Count"].sum()
+    return word_counts["Count"] / total_count
 
 
 def get_prior(word, word_counts):
@@ -39,7 +41,10 @@ def get_prior(word, word_counts):
     Returns:
         float: Prior probability for a given word.
     """
-    return
+    match = word_counts[word_counts["Word"] == word]
+    if not match.empty:
+        return match.iloc[0]["Prior"]
+    return 0.0
 
 
 def check_letter(l, w):
@@ -53,13 +58,13 @@ def check_letter(l, w):
     Returns:
         bool: True if l is in w, False otherwise.
     """
-    return
+    return l in w
 
 
 def check_evidence(evidence, w):
     """
     TODO
-    Checks if it's possible that the evidence supports the given word. In other words, its trying to compute P(E|W=w).
+    Checks if it"s possible that the evidence supports the given word. In other words, its trying to compute P(E|W=w).
 
     Evidence is a tuple containing two strings, first is the guessed word so far with correct letters 
     and the second being all incorrect letters.
@@ -71,7 +76,23 @@ def check_evidence(evidence, w):
     Returns:
         bool: True if its possible, False otherwise.
     """
-    return
+    correct, incorrect = evidence
+
+    for i in range(len(correct)):
+        if correct[i] != "-" and correct[i] != w[i]:
+            return False
+
+    for c in incorrect:
+        if c in w:
+            return False
+
+    for i, letter in enumerate(correct):
+        if letter != "-":
+            for j, char in enumerate(w):
+                if j != i and char == letter and correct[j] == "-":
+                    return False
+
+    return True
 
 
 def compute_posterior_denominator(evidence, word_counts):
@@ -86,7 +107,20 @@ def compute_posterior_denominator(evidence, word_counts):
     Returns:
         float: Probability of evidence.
     """
-    return
+    denominator = 0.0
+    for _, row in word_counts.iterrows():
+        w = row["Word"]
+        if check_evidence(evidence, w):
+            denominator += row["Prior"]
+    return denominator
+
+
+def is_letter_in_unguessed_positions(letter, word, evidence):
+    correct_pattern, _ = evidence
+    for i, char in enumerate(word):
+        if char == letter and correct_pattern[i] == "-":
+            return True
+    return False
 
 
 def compute_posterior(evidence, word, word_counts, denominator):
@@ -105,7 +139,10 @@ def compute_posterior(evidence, word, word_counts, denominator):
     Returns:
         float: Probability of evidence.
     """
-    return
+    if not check_evidence(evidence, word):
+        return 0.0
+    prior = get_prior(word, word_counts)
+    return prior / denominator if denominator > 0 else 0.0
 
 
 def predictive_probability(evidence, word_counts, denominator):
@@ -121,7 +158,20 @@ def predictive_probability(evidence, word_counts, denominator):
     Returns:
         lst: A list of probabilities for each letter.
     """
-    return
+    letter_probs = {}
+
+    for letter in string.ascii_uppercase:
+        letter_probs[letter] = 0.0
+
+    for _, row in word_counts.iterrows():
+        word = row["Word"]
+        posterior = compute_posterior(evidence, word, word_counts, denominator)
+        if posterior > 0:
+            for letter in string.ascii_uppercase:
+                if is_letter_in_unguessed_positions(letter, word, evidence):
+                    letter_probs[letter] += posterior
+
+    return letter_probs
 
 
 def predict_character(evidence, word_counts, denominator):
@@ -137,33 +187,48 @@ def predict_character(evidence, word_counts, denominator):
     Returns:
         tuple: Predicted character and associated probability.
     """
-    return
+    probs = predictive_probability(evidence, word_counts, denominator)
+
+    correct_pattern, incorrect_letters = evidence
+    guessed_letters = set(incorrect_letters)
+
+    for char in correct_pattern:
+        if char != "-":
+            guessed_letters.add(char)
+
+    for letter in guessed_letters:
+        if letter in probs:
+            probs[letter] = 0.0
+
+    best_letter = max(probs.items(), key=lambda x: x[1])
+    return best_letter
 
 
 if __name__ == "__main__":
 
     # TODO: Fill in correct file path
-    file_path = ""
+    file_path = "./hw1_word_counts_05-1.txt"
 
     empty_word = "-----"
-    Evidence = [(empty_word, ""),
-                (empty_word, "EA"),
-                ("A---S", ""),
-                ("A---S", "I"),
-                ("--O--", "AEMNT"),
-                (empty_word, "EO"),
-                ("D--I-", ""),
-                ("D--I-", "A"),
-                ("-U---", "AEIOS")
-                ]
+    Evidence = [
+        (empty_word, ""),
+        (empty_word, "EA"),
+        ("A---S", ""),
+        ("A---S", "I"),
+        ("--O--", "AEMNT"),
+        (empty_word, "EO"),
+        ("D--I-", ""),
+        ("D--I-", "A"),
+        ("-U---", "AEIOS")
+    ]
 
     ### DO NOT MODIFY BELOW THIS LINE ###
     assert os.path.exists(file_path), f"File not found: {file_path}"
 
-    word_counts = pd.read_csv(file_path, header=None, sep=' ')
-    word_counts = word_counts.rename(columns={0: 'Word', 1: 'Count'})
+    word_counts = pd.read_csv(file_path, header=None, sep=" ")
+    word_counts = word_counts.rename(columns={0: "Word", 1: "Count"})
 
-    word_counts['Prior'] = compute_prior(word_counts)
+    word_counts["Prior"] = compute_prior(word_counts)
 
     output = []
     pbar = tqdm(Evidence)
@@ -176,4 +241,4 @@ if __name__ == "__main__":
         pbar.update(1)
 
     output = pd.DataFrame(output, columns=["Correctly Guessed", "Incorrectly Guessed", "Character", "Probability"])
-    print(print(tabulate(output, headers='keys', tablefmt='psql')))
+    print(print(tabulate(output, headers="keys", tablefmt="psql")))
