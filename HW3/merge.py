@@ -15,5 +15,5 @@ merger = PdfMerger()
 for pdf in pdf_list:
     merger.append(pdf)
 
-merger.write("HW3.pdf")
+merger.write("CSE_250A_HW3.pdf")
 merger.close()
