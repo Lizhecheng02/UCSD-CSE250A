@@ -39,7 +39,7 @@ for lam in lambdas:
         match = bigram_data[(bigram_data["w1_idx"] == prev_index) & (bigram_data["w2_idx"] == idx)]
         count_bigram = int(match["count"].values[0]) if not match.empty else 0
         prev_count = unigram_counts[prev_index - 1]
-        p_b = count_bigram / prev_count if count_bigram > 0 else 1e-10
+        p_b = count_bigram / prev_count if count_bigram > 0 else 0.0
 
         p_m = lam * p_u + (1 - lam) * p_b
         log_likelihood_m += np.log(p_m)

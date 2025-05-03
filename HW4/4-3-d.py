@@ -36,7 +36,7 @@ for idx in token_indices:
     if count_bigram > 0:
         prob = count_bigram / prev_count
     else:
-        prob = 1e-10
+        prob = 0.0
         unseen_bigrams.append((vocab[prev_index - 1], vocab[idx - 1]))
 
     bigram_log_likelihood += np.log(prob)
