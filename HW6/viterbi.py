@@ -53,13 +53,14 @@ def collapse_and_decode(states: np.ndarray) -> str:
 
 
 def plot_states(states: np.ndarray, out_path: Path):
-    plt.figure(figsize=(16, 7))
+    plt.figure(figsize=(16, 9))
     plt.step(range(len(states)), states + 1, where="post")
     tick_labels = [chr(ord("a") + i) for i in range(26)] + [" "]
-    plt.yticks(ticks=np.arange(1, 28), labels=tick_labels)
-    plt.xlabel("time step t")
-    plt.ylabel("state letter")
-    plt.title("Most probable hidden-state sequence")
+    plt.xticks(fontsize=18)
+    plt.yticks(ticks=np.arange(1, 28), labels=tick_labels, fontsize=15)
+    plt.xlabel("time step t", fontsize=18)
+    plt.ylabel("state letter", fontsize=18)
+    plt.title("Most probable hidden-state sequence", fontsize=18)
     plt.tight_layout()
     plt.savefig(out_path, dpi=150)
     plt.close()
